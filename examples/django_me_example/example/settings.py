@@ -19,8 +19,7 @@ MANAGERS = ADMINS
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'test.db'
+        'ENGINE': 'django.db.backends.dummy',
     }
 }
 
@@ -119,11 +118,13 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'social.apps.django_app.context_processors.backends',
 )
 
+AUTH_USER_MODEL = 'mongo_auth.MongoUser'
+MONGOENGINE_USER_DOCUMENT = 'mongoengine.django.auth.User'
 SESSION_ENGINE = 'mongoengine.django.sessions'
+SESSION_SERIALIZER = 'mongoengine.django.sessions.BSONSerializer'
 mongoengine.connect('psa', host='mongodb://localhost/psa')
-MONGOENGINE_USER_DOCUMENT = 'example.app.models.User'
-SOCIAL_AUTH_USER_MODEL = 'example.app.models.User'
-
+# MONGOENGINE_USER_DOCUMENT = 'example.app.models.User'
+# SOCIAL_AUTH_USER_MODEL = 'example.app.models.User'
 
 AUTHENTICATION_BACKENDS = (
     'social.backends.open_id.OpenIdAuth',
@@ -151,6 +152,7 @@ AUTHENTICATION_BACKENDS = (
     'social.backends.dailymotion.DailymotionOAuth2',
     'social.backends.disqus.DisqusOAuth2',
     'social.backends.dropbox.DropboxOAuth',
+    'social.backends.eveonline.EVEOnlineOAuth2',
     'social.backends.evernote.EvernoteSandboxOAuth',
     'social.backends.fitbit.FitbitOAuth',
     'social.backends.flickr.FlickrOAuth',
@@ -179,6 +181,8 @@ AUTHENTICATION_BACKENDS = (
     'social.backends.amazon.AmazonOAuth2',
     'social.backends.email.EmailAuth',
     'social.backends.username.UsernameAuth',
+    'social.backends.wunderlist.WunderlistOAuth2',
+    'mongoengine.django.auth.MongoEngineBackend',
     'django.contrib.auth.backends.ModelBackend',
 )
 

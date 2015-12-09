@@ -7,7 +7,7 @@ Some miscellaneous options and use cases for python-social-auth_.
 Return the user to the original page
 ------------------------------------
 
-There's a common scenario were it's desired to return the user back to the
+There's a common scenario where it's desired to return the user back to the
 original page from where it was requested to login. For that purpose, the usual
 ``next`` query-string argument is used, the value of this parameter will be
 stored in the session and later used to redirect the user when login was
@@ -90,7 +90,7 @@ function, like this::
         'social.pipeline.user.create_user',
         'social.pipeline.social_auth.associate_user',
         'social.pipeline.social_auth.load_extra_data',
-        'social.pipeline.user.user_details'
+        'social.pipeline.user.user_details',
     )
 
 This feature is disabled by default because it's not 100% secure to automate
@@ -132,17 +132,20 @@ implemented easily)::
         # request.backend and request.strategy will be loaded with the current
         # backend and strategy.
         token = request.GET.get('access_token')
-        user = backend.do_auth(request.GET.get('access_token'))
+        user = request.backend.do_auth(request.GET.get('access_token'))
         if user:
             login(request, user)
             return 'OK'
         else:
             return 'ERROR'
 
-The snipped above is quite simple, it doesn't return JSON and usually this call
+The snippet above is quite simple, it doesn't return JSON and usually this call
 will be done by AJAX. It doesn't return the user information, but that's
 something that can be extended and filled to suit the project where it's going
 to be used.
+
+This topic is well addressed in `A Rest API using Django and authentication
+with OAuth2 AND third parties!`_ wrote by `Félix Descôteaux`_.
 
 
 Multiple scopes per provider
@@ -163,7 +166,7 @@ accomplish that behavior, there are two ways to do it.
         def get_scope(self):
             scope = super(CustomFacebookOAuth2, self).get_scope()
             if self.data.get('extrascope'):
-                scope += [('foo', 'bar')]
+                scope = scope + [('foo', 'bar')]
             return scope
 
 
@@ -174,6 +177,19 @@ accomplish that behavior, there are two ways to do it.
 
    Put this new backend in some place in your project and replace the original
    ``FacebookOAuth2`` in ``AUTHENTICATION_BACKENDS`` with this new version.
+
+   When overriding this method, take into account that the default output the
+   base class for ``get_scope()`` is the raw value from the settings (whatever
+   they are defined), doing this will actually update the value in your
+   settings for all the users::
+
+    scope = super(CustomFacebookOAuth2, self).get_scope()
+    scope += ['foo', 'bar']
+
+   Instead do it like this::
+
+    scope = super(CustomFacebookOAuth2, self).get_scope()
+    scope = scope + ['foo', 'bar']
 
 2. It's possible to do the same by defining a second backend which extends from
    the original but overrides the name, this will imply new URLs and also new
@@ -258,5 +274,45 @@ It needs to be somewhere before create_user because the partial will change the
 username according to the users choice.
 
 
+Re-prompt Google OAuth2 users to refresh the ``refresh_token``
+--------------------------------------------------------------
+
+A ``refresh_token`` also expire, a ``refresh_token`` can be lost, but they can
+also be refreshed (or re-fetched) if you ask to Google the right way. In order
+to do so, set this setting::
+
+    SOCIAL_AUTH_GOOGLE_OAUTH2_AUTH_EXTRA_ARGUMENTS = {
+        'access_type': 'offline',
+        'approval_prompt': 'auto'
+    }
+
+Then link the users to ``/login/google-oauth2?approval_prompt=force``. If you
+want to refresh the ``refresh_token`` only on those users that don't  have it,
+do it with a pipeline function::
+
+    def redirect_if_no_refresh_token(backend, response, social, *args, **kwargs):
+        if backend.name == 'google-oauth2' and social and \
+           response.get('refresh_token') is None and \
+           social.extra_data.get('refresh_token') is None:
+            return redirect('/login/google-oauth2?approval_prompt=force')
+
+Set this pipeline after ``social_user``::
+
+    SOCIAL_AUTH_PIPELINE = (
+        'social.pipeline.social_auth.social_details',
+        'social.pipeline.social_auth.social_uid',
+        'social.pipeline.social_auth.auth_allowed',
+        'social.pipeline.social_auth.social_user',
+        'path.to.redirect_if_no_refresh_token',
+        'social.pipeline.user.get_username',
+        'social.pipeline.user.create_user',
+        'social.pipeline.social_auth.associate_user',
+        'social.pipeline.social_auth.load_extra_data',
+        'social.pipeline.user.user_details',
+    )
+
+
 .. _python-social-auth: https://github.com/omab/python-social-auth
 .. _People API endpoint: https://developers.google.com/+/api/latest/people/list
+.. _Félix Descôteaux: https://twitter.com/FelixDescoteaux
+.. _A Rest API using Django and authentication with OAuth2 AND third parties!: http://httplambda.com/a-rest-api-with-django-and-oauthw-authentication/

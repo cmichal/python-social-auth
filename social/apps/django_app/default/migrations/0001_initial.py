@@ -5,12 +5,17 @@ from django.db import models, migrations
 import social.apps.django_app.default.fields
 from django.conf import settings
 import social.storage.django_orm
+from social.utils import setting_name
+
+user_model = getattr(settings, setting_name('USER_MODEL'), None) or \
+             getattr(settings, 'AUTH_USER_MODEL', None) or \
+             'auth.User'
 
 
 class Migration(migrations.Migration):
 
     dependencies = [
-        migrations.swappable_dependency(settings.AUTH_USER_MODEL),
+        migrations.swappable_dependency(user_model),
     ]
 
     operations = [
@@ -73,9 +78,9 @@ class Migration(migrations.Migration):
                 ('provider', models.CharField(max_length=32)),
                 ('uid', models.CharField(max_length=255)),
                 ('extra_data', social.apps.django_app.default.fields.JSONField(
-                    default=b'{}')),
+                    default='{}')),
                 ('user', models.ForeignKey(
-                    related_name=b'social_auth', to=settings.AUTH_USER_MODEL)),
+                    related_name='social_auth', to=user_model)),
             ],
             options={
                 'db_table': 'social_auth_usersocialauth',
@@ -89,5 +94,9 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name='code',
             unique_together=set([('email', 'code')]),
+        ),
+        migrations.AlterUniqueTogether(
+            name='nonce',
+            unique_together=set([('server_url', 'timestamp', 'salt')]),
         ),
     ]

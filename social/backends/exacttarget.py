@@ -61,7 +61,7 @@ class ExactTargetOAuth2(BaseOAuth2):
     def do_auth(self, token, *args, **kwargs):
         dummy, secret = self.get_key_and_secret()
         try:  # Decode the token, using the Application Signature from settings
-            decoded = jwt.decode(token, secret)
+            decoded = jwt.decode(token, secret, algorithms=['HS256'])
         except jwt.DecodeError:  # Wrong signature, fail authentication
             raise AuthCanceled(self)
         kwargs.update({'response': {'token': decoded}, 'backend': self})
@@ -74,7 +74,7 @@ class ExactTargetOAuth2(BaseOAuth2):
             raise AuthFailed(self, 'Authentication Failed')
         return self.do_auth(token, *args, **kwargs)
 
-    def extra_data(self, user, uid, response, details):
+    def extra_data(self, user, uid, response, details=None, *args, **kwargs):
         """Load extra details from the JWT token"""
         data = {
             'id': details.get('id'),
