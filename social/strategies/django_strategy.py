@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.http import HttpResponse
 from django.db.models import Model
-from django.contrib.contenttypes.models import ContentType
 from django.contrib.auth import authenticate
 from django.shortcuts import redirect
 from django.template import TemplateDoesNotExist, RequestContext, loader
@@ -126,6 +125,7 @@ class DjangoStrategy(BaseStrategy):
     def to_session_value(self, val):
         """Converts values that are instance of Model to a dictionary
         with enough information to retrieve the instance back later."""
+        from django.contrib.contenttypes.models import ContentType
         if isinstance(val, Model):
             val = {
                 'pk': val.pk,
@@ -135,6 +135,7 @@ class DjangoStrategy(BaseStrategy):
 
     def from_session_value(self, val):
         """Converts back the instance saved by self._ctype function."""
+        from django.contrib.contenttypes.models import ContentType
         if isinstance(val, dict) and 'pk' in val and 'ctype' in val:
             ctype = ContentType.objects.get_for_id(val['ctype'])
             ModelClass = ctype.model_class()
